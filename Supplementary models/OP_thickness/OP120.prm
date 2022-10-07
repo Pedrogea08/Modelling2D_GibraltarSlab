@@ -1,0 +1,229 @@
+#Input file for the supplementary model of Gea et al. (2022) with a OP 120 km thick
+
+#################################### GLOBAL PARAMETERS ###################################
+set Dimension                              = 2
+set World builder file                     = Geometry_model_OP120.wb
+set Use years in output instead of seconds = true
+set Start time                             = 0
+set End time                               = 20e6 #20 Myr
+set Output directory                       = Output_directory
+set Nonlinear solver scheme                =   single Advection, iterated Stokes
+set Nonlinear solver tolerance             = 1e-4
+set Max nonlinear iterations               = 10
+set Timing output frequency                = 100
+set Adiabatic surface temperature          = 0.
+set CFL number                             = 1
+set Pressure normalization                 =   surface
+set Resume computation                     = false 
+set Use conduction timestep                = false 
+
+
+##################################### EQUATIONS AND SOLVER PARAMETERS ###########################################
+
+#We use Boussinesq approximation
+subsection Formulation
+   set Formulation = Boussinesq approximation
+end 
+
+subsection Solver parameters
+set Composition solver tolerance = 1e-5
+set Temperature solver tolerance = 1e-5
+  subsection Stokes solver parameters
+    set Linear solver tolerance = 1e-5 
+    set Linear solver A block tolerance = 5e-1 
+    set Linear solver S block tolerance = 1e-6
+    set Stokes solver type =  block GMG
+    set Number of cheap Stokes solver steps = 200
+    set GMRES solver restart length = 200 
+    set Maximum number of expensive Stokes solver steps = 1000 
+    set Use full A block as preconditioner = false  
+  end
+end
+
+
+###################################### GEOMETRY AND GRAVITY MODEL ################################
+
+# We use a box geometry: 1320x660 km.
+subsection Geometry model 
+  set Model name = box
+    subsection Box
+      set X extent                = 1320e3 
+      set Y extent                = 660e3
+      set X repetitions           = 2
+      set Y repetitions           = 1
+  end
+end
+
+subsection Gravity model
+  set Model name = vertical 
+  subsection Vertical
+    set Magnitude = 9.81
+  end
+end
+
+
+######################################## COMPOSITIONAL FIELDS AND INITIAL MODEL ################################
+#We use 5 compositional fields: weak layer, continental upper crust, continental lower crust, lithosphere 
+#and oceanic crust (see fig. 2 of the paper). The background (asthenosphere) is not defined as compositional field
+subsection Compositional fields
+  set Number of fields = 5
+  set Names of fields  = weak_layer, continental_uppercrust, continental_lowercrust, lith, oceanic_crust
+end
+
+#We build the geometry with the geodynamic world builder 
+subsection Initial composition model
+    set Model name = world builder
+end
+
+subsection Boundary composition model
+  set Fixed composition boundary indicators = bottom
+  set List of model names = initial composition
+end
+
+######################################### MATERIAL MODEL (RHEOLOGY) ######################################
+
+subsection Material model
+
+  set Material averaging =  harmonic average
+  set Model name = visco plastic
+
+  subsection Visco Plastic
+
+    set Reference temperature  = 293 
+    set Reference viscosity    = 1e21
+
+    set Minimum strain rate = 1.e-20
+    set Reference strain rate = 1.e-15
+
+    set Minimum viscosity = 1e19
+    set Maximum viscosity = 1e23
+
+    set Viscosity averaging scheme = harmonic
+
+    set Grain size = 1.0e-2
+
+    #Model parameters
+    set Thermal diffusivities = 0.8e-6 
+    set Heat capacities       = 1250.
+    #In order: Background, weak layer, continental upper crust, continental lower crust, lithosphere, oceanic crust
+    set Densities             = 3300, 3300, 2750, 2900, 3300, 3300
+    set Thermal expansivities = 3.5e-5
+
+    set Viscous flow law = composite
+    
+    #In order: Background, weak layer, continental upper crust, continental lower crust, lithosphere, oceanic crust
+    #Dislocation creep
+    set Prefactors for dislocation creep          =  2.28e-18, 2.5e-21,   2.5e-23, 2.5e-50,   2.28e-18,  2.5e-23
+    set Stress exponents for dislocation creep    =  3.5,      1,            1,       1,         3.5,        1
+    set Activation energies for dislocation creep =  480e3,    0,            0,       0,         480e3,      0
+    set Activation volumes for dislocation creep  =  1.1e-5,   0,            0,       0,         1.1e-5,     0 
+    
+    #Diffusion creep
+    set Prefactors for diffusion creep            =  4.7e-16,  2.5e-21,   2.5e-23,  5e-19,     4.7e-16,    2.5e-23
+    set Activation energies for diffusion creep   =  335e3,    0,            0,       170e3,     335e3,      0  
+    set Activation volumes for diffusion creep    =  4e-6,     0,            0,       0,         4e-6,       0
+    set Grain size exponents for diffusion creep  =  3,        0,            0,       7,         3,          0
+
+    set Cohesions = 1e6, 1e15, 1e15, 1e15, 1e6, 1e15
+    set Angles of internal friction = 20, 0, 0, 0, 20, 0
+
+  end
+end
+
+
+############################################ MESH REFINEMENT AND DISCRETIZATION #################################
+#We refine the mesh every 10 timesteps according to viscosity, composition, temperature or density 
+subsection Mesh refinement
+  set Initial global refinement = 4
+  set Initial adaptive refinement = 5
+  set Minimum refinement level = 0
+  set Normalize individual refinement criteria = true 
+  set Refinement criteria merge operation = max 
+  set Skip solvers on initial refinement = false 
+  set Strategy = viscosity, composition, temperature, density
+  set Time steps between mesh refinement = 10
+  set Coarsening fraction = 0.10
+  set Refinement fraction = 0.85 
+end
+
+subsection Discretization
+  set Composition polynomial degree = 2
+  set Stokes velocity polynomial degree = 2
+  set Temperature polynomial degree = 2
+  set Use discontinuous composition discretization = false 
+  set Use discontinuous temperature discretization = false 
+  set Use locally conservative discretization = false
+  subsection Stabilization parameters   
+    set Use limiter for discontinuous composition solution = false
+    set Use limiter for discontinuous temperature solution = false
+    set Stabilization method = entropy viscosity 
+    set Use artificial viscosity smoothing = true
+    set alpha = 2 
+    set beta  = 0.052 
+    set cR    = 0.11 
+    set gamma = 0.0
+  end
+end
+
+
+########################################### VELOCITY ############################################
+#We use free free slip conditions for all boundaries
+
+subsection Boundary velocity model
+  set Tangential velocity boundary indicators = bottom ,left, right, top
+end
+
+
+######################################### TEMPERATURE ########################################
+
+subsection Initial temperature model
+  set Model name = world builder
+end 
+
+subsection Boundary temperature model
+  set Allow fixed temperature on outflow boundaries = true
+  set Fixed temperature boundary indicators = bottom, top
+  set List of model names =  box
+  subsection Box
+    set Bottom temperature = 1643
+    set Top temperature = 293
+  end
+end
+
+subsection Heating model
+  set List of model names = compositional heating
+  subsection Compositional heating
+    set Compositional heating values = 0,0, 1.5e-6, 0, 0, 0
+  end
+end
+
+
+######################################## POSTPROCESSING ##################################
+
+subsection Postprocess
+  set List of postprocessors = velocity statistics, temperature statistics,  heat flux statistics, \
+                               visualization, basic statistics, topography, particles, heat flux map
+  
+  #We use a particle to track the trench position over time
+  subsection Particles
+    set Number of particles = 1
+    set Data output format =  vtu
+    set Particle generator name = ascii file
+    set Time between data output = 0.2e6
+    subsection Generator
+      subsection Ascii file
+        set Data directory = ./
+        set Data file name = initial_particle_location.dat
+      end 
+    end 
+  end
+
+  #We see the results every 2e5 years
+  subsection Visualization
+    set Output format = vtu
+    set Interpolate output = true
+    set Time between graphical output = 0.2e6 
+    set List of output variables      = strain rate, viscosity, density, melt fraction,  vertical heat flux, shear stress
+  end
+end
+
