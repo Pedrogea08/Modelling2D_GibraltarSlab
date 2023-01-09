@@ -125,8 +125,8 @@ subsection Material model
     set Grain size exponents for diffusion creep  =  3,        0,            0,       7,         3,          0
 
 
-    set Cohesions = 1e6, 1e15, 1e15, 1e15, 1e6, 1e15
-    set Angles of internal friction = 20, 0, 0, 0, 20, 0
+    set Cohesions = 2e7, 1e15, 2e7, 2e7, 2e7, 1e15
+    set Angles of internal friction = 20, 0, 20, 20, 20, 0
 
   end
 end
@@ -175,14 +175,14 @@ subsection Mesh deformation
   subsection Free surface
     #Zero is no stabilization of the free surface and one is fully implicit
     #Increasing this term will stabilize more the free surface
-    set Free surface stabilization theta = 0.5
-    set Surface velocity projection =   normal
+    set Free surface stabilization theta = 1
+    set Surface velocity projection =   vertical
   end
-  subsection Diffusion
+  #subsection Diffusion
   # Diffusivity term. Increasing this value will result in a smoother
   # free surface and lower topography amplitudes.
-  set Hillslope transport coefficient = 1.e-6
-  end
+  #set Hillslope transport coefficient = 1.e-6
+  #end
 end
 
 
