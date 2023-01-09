@@ -124,8 +124,8 @@ subsection Material model
     set Activation volumes for diffusion creep    =  4e-6,     0,            0,       0,         4e-6,       0
     set Grain size exponents for diffusion creep  =  3,        0,            0,       7,         3,          0
 
-    set Cohesions = 1e6, 1e15, 1e15, 1e15, 1e6, 1e15
-    set Angles of internal friction = 20, 0, 0, 0, 20, 0
+    set Cohesions = 2e7, 1e15, 2e7, 2e7, 2e7, 1e15
+    set Angles of internal friction = 20, 0, 20, 20, 20, 0
 
   end
 end
